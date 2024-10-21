@@ -36,7 +36,7 @@ def he_initialization(layer_size, prev_layer_size):
 # used for each snake AI generation
 # will need modification for inputs and layers as we progress
 class NeuralNetwork:
-    def __init__(self, input_size=6, hidden_layers=[16, 16], output_size=4):
+    def __init__(self, input_size=14, hidden_layers=[16, 16], output_size=4):
         self.weights = []
         self.biases = []
 
@@ -156,17 +156,36 @@ class NeuralNetwork:
 # Which then allows it to make predictions
 # Modifying as needed
 
-def get_game_state(snake_position, fruit_position, snake_body):
+def get_game_state(snake_position, fruit_position, snake_body, direction):
+    #Relative position of the fruit to the snake
     relative_fruit_x = (fruit_position[0] - snake_position[0]) / window_x
     relative_fruit_y = (fruit_position[1] - snake_position[1]) / window_y
 
+    # Determine relative direction of the fruit
+    fruit_direction_up = 1 if relative_fruit_y < 0 else 0
+    fruit_direction_down = 1 if relative_fruit_y > 0 else 0
+    fruit_direction_left = 1 if relative_fruit_x < 0 else 0
+    fruit_direction_right = 1 if relative_fruit_x > 0 else 0
+
+    # Facing direction (encoded as a one-hot vector)
+    direction_up = 1 if direction == 'UP' else 0
+    direction_down = 1 if direction == 'DOWN' else 0
+    direction_left = 1 if direction == 'LEFT' else 0
+    direction_right = 1 if direction == 'RIGHT' else 0
+
+    # Danger detection
     danger_left = 1 if (snake_position[0] - 10, snake_position[1]) in snake_body or snake_position[0] - 10 < 0 else 0
     danger_right = 1 if (snake_position[0] + 10, snake_position[1]) in snake_body or snake_position[0] + 10 >= window_x else 0
     danger_up = 1 if (snake_position[0], snake_position[1] - 10) in snake_body or snake_position[1] - 10 < 0 else 0
     danger_down = 1 if (snake_position[0], snake_position[1] + 10) in snake_body or snake_position[1] + 10 >= window_y else 0
 
-    return [relative_fruit_x, relative_fruit_y,
-            danger_left, danger_right, danger_up, danger_down]
+    return [
+        relative_fruit_x, relative_fruit_y,
+        danger_left, danger_right, danger_up, danger_down,
+        direction_up, direction_down, direction_left, direction_right,
+        fruit_direction_up, fruit_direction_down, fruit_direction_left, fruit_direction_right
+    ]
+
 
 
 
@@ -178,7 +197,7 @@ def initialize_population(population_size):
 # Fitness function to determine worth of a neural network
 # Utilizes steps and distance from fruit to update score
 
-def evaluate_fitness(nn, max_steps=5000, no_progress_steps=200):
+def evaluate_fitness(nn, max_steps=10000, no_progress_steps=1000):
     snake_position = [100, 50]
     snake_body = [[100, 50], [90, 50], [80, 50], [70, 50]]
     fruit_position = [random.randrange(1, (window_x // 10)) * 10, random.randrange(1, (window_y // 10)) * 10]
@@ -193,7 +212,7 @@ def evaluate_fitness(nn, max_steps=5000, no_progress_steps=200):
     move_history = []
 
     while steps < max_steps:
-        game_state = get_game_state(snake_position, fruit_position, snake_body)
+        game_state = get_game_state(snake_position, fruit_position, snake_body, direction)
         prediction = nn.predict(game_state)
         change_to = ['UP', 'DOWN', 'LEFT', 'RIGHT'][prediction]
 
@@ -221,7 +240,7 @@ def evaluate_fitness(nn, max_steps=5000, no_progress_steps=200):
         snake_body.insert(0, list(snake_position))
 
         if snake_position[0] == fruit_position[0] and snake_position[1] == fruit_position[1]:
-            score += 5000  # High reward for eating fruit
+            score += 10  # High reward for eating fruit
             fruit_spawn = False
             progress = True
         else:
@@ -233,7 +252,7 @@ def evaluate_fitness(nn, max_steps=5000, no_progress_steps=200):
 
         if (snake_position[0] < 0 or snake_position[0] >= window_x or
                 snake_position[1] < 0 or snake_position[1] >= window_y):
-            #score -= 1000
+            score -= 10
             break
 
         for block in snake_body[1:]:
@@ -244,10 +263,10 @@ def evaluate_fitness(nn, max_steps=5000, no_progress_steps=200):
         distance_to_food = np.sqrt((snake_position[0] - fruit_position[0]) ** 2 +
                                    (snake_position[1] - fruit_position[1]) ** 2)
         if distance_to_food < last_distance:
-            score += 50  # Increased reward for getting closer to food
+            score += 1  # Increased reward for getting closer to food
             progress = True
         else:
-            score -= 10  # Penalty for moving away from food
+            score -= 1  # Penalty for moving away from food
 
         last_distance = distance_to_food
         steps += 1
@@ -256,19 +275,19 @@ def evaluate_fitness(nn, max_steps=5000, no_progress_steps=200):
         if len(move_history) > no_progress_steps:
             move_history.pop(0)
             if len(set(move_history)) < no_progress_steps // 2:  # Check for loops
-                score -= 500  # Penalty for looping
+                score -= 10  # Penalty for looping
                 break
 
         if steps % no_progress_steps == 0:
             if not progress:
-                score -= 500  # Increased penalty for no progress
+                score -= 10  # Increased penalty for no progress
                 break
             progress = False
 
-        if direction_change_count < 3 and steps % 50 == 0:  # Penalize for lack of direction change
-            score -= 200
+      #  if direction_change_count < 3 and steps % 50 == 0:  # Penalize for lack of direction change
+          #  score -= 200
 
-    return score
+    return score + steps/25
 
 
 # Genetic Algorithm, will heavily modify
@@ -332,7 +351,7 @@ def visualize_snake(nn, generation, nn_index, max_steps=500):
         generation_text = font.render(f'Generation: {generation}, NN: {nn_index}', True, white)
         game_window.blit(generation_text, [10, 10])
 
-        game_state = get_game_state(snake_position, fruit_position, snake_body)
+        game_state = get_game_state(snake_position, fruit_position, snake_body, direction)
         prediction = nn.predict(game_state)
 
 
