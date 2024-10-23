@@ -17,6 +17,7 @@ Hidden layers are configurable and represent the number of layers and neurons co
 Output layer has 4 possible outputs, corresponding to the 4 possible movements. Subject to change, possibly 3 since a snake can only move 3 directtions.
 
 > **Game Flow**
+
 The program starts Pygame and opens up a game window. The initial population of neural networks is generated.
 
 After all the weights and biases are generated for the neural networks of the generation, each is ran individually.
