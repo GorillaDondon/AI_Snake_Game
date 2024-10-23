@@ -183,6 +183,18 @@ import pygame
 import time
 import random
 
+
+def cell_score(cell, fruit_cell, window_x, window_y):
+    # calculate the straight distance between a cell and the fruit
+    distance = ((fruit_cell[0] - cell[0])^2 + (fruit_cell[1] - cell[1])^2)^(1/2)
+
+    center_x = window_x / 2
+    center_y = window_y / 2
+
+    danger_wall_score = (window_x + window_y) - (abs(window_x - center_x) + abs(window_y - center_y))
+
+
+
 # displaying Score function
 def show_score(choice, color, font, size, game_window, score):
   
@@ -232,11 +244,11 @@ def game_over(game_window, score, window_x, window_y, red):
     quit()
 
 def game():
-    snake_speed = 15
+    snake_speed = 10
 
     # Window size
-    window_x = 900
-    window_y = 720
+    window_x = 700
+    window_y = 500
 
     # defining colors
     black = pygame.Color(0, 0, 0)
@@ -292,7 +304,7 @@ def game():
                     change_to = 'LEFT'
                 if event.key == pygame.K_RIGHT:
                     change_to = 'RIGHT'
-
+        
         # If two keys pressed simultaneously
         # we don't want snake to move into two 
         # directions simultaneously
@@ -318,12 +330,14 @@ def game():
         # Snake body growing mechanism
         # if fruits and snakes collide then scores
         # will be incremented by 10
-        snake_body.insert(0, list(snake_position))
+        snake_body.insert(0, list(snake_position)) # snake making forward movement
         if snake_position[0] == fruit_position[0] and snake_position[1] == fruit_position[1]:
             score += 10
             fruit_spawn = False
         else:
             snake_body.pop()
+
+        print(snake_position[0], snake_position[1])
             
         if not fruit_spawn:
             fruit_position = [random.randrange(1, (window_x//10)) * 10, 
@@ -336,7 +350,7 @@ def game():
             pygame.draw.rect(game_window, green,
                             pygame.Rect(pos[0], pos[1], 10, 10))
         pygame.draw.rect(game_window, white, pygame.Rect(
-            fruit_position[0], fruit_position[1], 20, 10))
+            fruit_position[0], fruit_position[1], 10, 10))
 
         # Game Over conditions
         if snake_position[0] < 0 or snake_position[0] > window_x-10:
