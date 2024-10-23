@@ -10,7 +10,7 @@ window_x = 720
 window_y = 480
 population_size = 50  # Number of neural networks in each generation
 initial_mutation_rate = 0.1  # Initial probability of mutation
-num_generations = 100  # Number of generations
+num_generations = 200  # Number of generations
 visualize_count = 3  # Number of neural networks to visualize from each generation
 
 
@@ -29,50 +29,54 @@ game_window = pygame.display.set_mode((window_x, window_y))
 fps = pygame.time.Clock()
 
 
-def he_initialization(layer_size, prev_layer_size):
-    return np.random.randn(layer_size, prev_layer_size) * np.sqrt(2 / prev_layer_size)
+# Simple random initialization for neural network weights
+def random_initialization(layer_size, prev_layer_size):
+    return np.random.randn(layer_size, prev_layer_size) * 0.01  # Small random values
 
 # Neural Network class
 # used for each snake AI generation
 # will need modification for inputs and layers as we progress
 class NeuralNetwork:
-    def __init__(self, input_size=14, hidden_layers=[16, 16], output_size=4):
+    def __init__(self, input_size=14, hidden_layers=[16, 32, 64, 128, 256], output_size=4):
+        # Neural Network Structure
+        # Input size represents # of inputs given to the neural network using the get_game_state function
+        # Hidden layer values represent the number of neurons in a hidden layer, optimizable
+        # Output size represents the 4 directions the neural network can possibly output as a direction for the snake
+        # to go to
+
         self.weights = []
         self.biases = []
 
         prev_layer_size = input_size
+
+        # Generates the weights for each layer, connecting the neurons from layer to layer
         for hidden_size in hidden_layers:
-            self.weights.append(he_initialization(hidden_size, prev_layer_size))
+            self.weights.append(random_initialization(hidden_size, prev_layer_size))
             self.biases.append(np.zeros((hidden_size, 1)))
             prev_layer_size = hidden_size
 
-        self.weights.append(he_initialization(output_size, prev_layer_size))
+
+        self.weights.append(random_initialization(output_size, prev_layer_size))
         self.biases.append(np.zeros((output_size, 1)))
 
-        # Adam optimizer parameters
-        self.learning_rate = 0.01
-        self.beta1 = 0.9
-        self.beta2 = 0.999
-        self.epsilon = 1e-8
+        # Momentum is used to accelerate the learning process of the model to push model towards optimization
+        # Variance represents how much a model's output can fluctuate, specifically related to
+        # overfitting/underfitting issues
+        self.momentum_weights = [np.zeros_like(w) for w in self.weights]
+        self.variance_weights = [np.zeros_like(w) for w in self.weights]
+        self.momentum_biases = [np.zeros_like(b) for b in self.biases]
+        self.variance_biases = [np.zeros_like(b) for b in self.biases]
 
-        self.m_weights = [np.zeros_like(w) for w in self.weights]
-        self.v_weights = [np.zeros_like(w) for w in self.weights]
-        self.m_biases = [np.zeros_like(b) for b in self.biases]
-        self.v_biases = [np.zeros_like(b) for b in self.biases]
-
+    # Relu and Sigmoid functions used to squash outputs
     def relu(self, x):
         return np.maximum(0, x)
-
-    def relu_derivative(self, x):
-        return np.where(x > 0, 1, 0)
 
     def sigmoid(self, x):
         return 1 / (1 + np.exp(-x))
 
-    def sigmoid_derivative(self, x):
-        return self.sigmoid(x) * (1 - self.sigmoid(x))
-
     def forward(self, inputs):
+        #Propagates the input information forward to the other hidden layers, and hidden layer to hidden layer,
+        # and so on.
         self.inputs = np.array(inputs).reshape(-1, 1)
         self.hidden_outputs = []
         layer_output = self.inputs
@@ -88,43 +92,7 @@ class NeuralNetwork:
         output = self.forward(inputs)
         return np.argmax(output)
 
-    def backward(self, x, y):
-        self.forward(x)
-        output_error = self.output - y
-        d_weights = []
-        d_biases = []
-        d_output = output_error * self.sigmoid_derivative(self.output)
-
-        d_weights.append(np.dot(d_output, self.hidden_outputs[-1].T))
-        d_biases.append(d_output)
-
-        for i in reversed(range(len(self.weights) - 1)):
-            d_hidden = np.dot(self.weights[i + 1].T, d_output) * self.relu_derivative(self.hidden_outputs[i])
-            d_weights.append(np.dot(d_hidden, self.hidden_outputs[i - 1].T) if i != 0 else np.dot(d_hidden, self.inputs.T))
-            d_biases.append(d_hidden)
-            d_output = d_hidden
-
-        d_weights.reverse()
-        d_biases.reverse()
-        self.d_weights = d_weights
-        self.d_biases = d_biases
-
-    def update_parameters(self, t):
-        for i in range(len(self.weights)):
-            self.m_weights[i] = self.beta1 * self.m_weights[i] + (1 - self.beta1) * self.d_weights[i]
-            self.v_weights[i] = self.beta2 * self.v_weights[i] + (1 - self.beta2) * (self.d_weights[i] ** 2)
-            m_hat_weights = self.m_weights[i] / (1 - self.beta1 ** t)
-            v_hat_weights = self.v_weights[i] / (1 - self.beta2 ** t)
-
-            self.weights[i] -= self.learning_rate * m_hat_weights / (np.sqrt(v_hat_weights) + self.epsilon)
-
-            self.m_biases[i] = self.beta1 * self.m_biases[i] + (1 - self.beta1) * self.d_biases[i]
-            self.v_biases[i] = self.beta2 * self.v_biases[i] + (1 - the_beta2) * (self.d_biases[i] ** 2)
-            m_hat_biases = self.m_biases[i] / (1 - self.beta1 ** t)
-            v_hat_biases = self.v_biases[i] / (1 - self.beta2 ** t)
-
-            self.biases[i] -= self.learning_rate * m_hat_biases / (np.sqrt(v_hat_biases) + self.epsilon)
-
+    # Crossbreeds 2 neural networks to create a child neural network
     def crossover(self, other):
         child = NeuralNetwork(input_size=len(self.weights[0][0]), hidden_layers=[layer.shape[0] for layer in self.weights[:-1]], output_size=self.weights[-1].shape[0])
         for i in range(len(self.weights)):
@@ -132,25 +100,13 @@ class NeuralNetwork:
             child.biases[i] = np.where(np.random.rand(*self.biases[i].shape) > 0.5, self.biases[i], other.biases[i])
         return child
 
+    # Mutates the neural network biases/weights under a certain condition
     def mutate(self, mutation_rate):
         for i in range(len(self.weights)):
             mutation_mask_w = np.random.rand(*self.weights[i].shape) < mutation_rate
             mutation_mask_b = np.random.rand(*self.biases[i].shape) < mutation_rate
             self.weights[i] += mutation_mask_w * np.random.randn(*self.weights[i].shape)
             self.biases[i] += mutation_mask_b * np.random.randn(*self.biases[i].shape)
-
-    def train(self, training_data, epochs):
-        for epoch in range(epochs):
-            for t, (x, y) in enumerate(training_data, 1):
-                self.backward(x, y)
-                self.update_parameters(t)
-
-
-
-
-
-
-
 
 # Gives the relevant game state information to the neural network
 # Which then allows it to make predictions
@@ -211,14 +167,20 @@ def evaluate_fitness(nn, max_steps=10000, no_progress_steps=1000):
 
     move_history = []
 
+    # Game loop, if it hits max steps, end the run
     while steps < max_steps:
+        # Gets the game state from the get function
         game_state = get_game_state(snake_position, fruit_position, snake_body, direction)
+        # Gives the move that the neural network has decided to do based off game state and weights/biases
         prediction = nn.predict(game_state)
         change_to = ['UP', 'DOWN', 'LEFT', 'RIGHT'][prediction]
 
+
+        # a counter variable, not necessary
         if change_to != direction:
             direction_change_count += 1
 
+        # Changes the direction if needed based off prediction
         if change_to == 'UP' and direction != 'DOWN':
             direction = 'UP'
         if change_to == 'DOWN' and direction != 'UP':
@@ -228,6 +190,7 @@ def evaluate_fitness(nn, max_steps=10000, no_progress_steps=1000):
         if change_to == 'RIGHT' and direction != 'LEFT':
             direction = 'RIGHT'
 
+        #Changes position of snake based off direcction
         if direction == 'UP':
             snake_position[1] -= 10
         if direction == 'DOWN':
@@ -239,6 +202,7 @@ def evaluate_fitness(nn, max_steps=10000, no_progress_steps=1000):
 
         snake_body.insert(0, list(snake_position))
 
+        # + 10 to the snakes score if it eats a frit
         if snake_position[0] == fruit_position[0] and snake_position[1] == fruit_position[1]:
             score += 10  # High reward for eating fruit
             fruit_spawn = False
@@ -246,10 +210,13 @@ def evaluate_fitness(nn, max_steps=10000, no_progress_steps=1000):
         else:
             snake_body.pop()
 
+        # Spawns a fruit if its eaten
         if not fruit_spawn:
             fruit_position = [random.randrange(1, (window_x // 10)) * 10, random.randrange(1, (window_y // 10)) * 10]
         fruit_spawn = True
 
+
+        # Ends the run if the snake hits its body or wall, lowers the score
         if (snake_position[0] < 0 or snake_position[0] >= window_x or
                 snake_position[1] < 0 or snake_position[1] >= window_y):
             score -= 10
@@ -257,8 +224,12 @@ def evaluate_fitness(nn, max_steps=10000, no_progress_steps=1000):
 
         for block in snake_body[1:]:
             if snake_position[0] == block[0] and snake_position[1] == block[1]:
-                #score -= 1000
+                score -= 10
                 break
+
+        # If the snake is getting closer to the food, it increases the score
+        # Motivates over time for the snake to get closer to the food
+        # Might be an unnecessary function
 
         distance_to_food = np.sqrt((snake_position[0] - fruit_position[0]) ** 2 +
                                    (snake_position[1] - fruit_position[1]) ** 2)
@@ -271,6 +242,7 @@ def evaluate_fitness(nn, max_steps=10000, no_progress_steps=1000):
         last_distance = distance_to_food
         steps += 1
 
+        # Functionality to punish snakes that just go in a circle without doing anything
         move_history.append(tuple(snake_position))
         if len(move_history) > no_progress_steps:
             move_history.pop(0)
@@ -296,6 +268,8 @@ def genetic_algorithm(population, num_generations, initial_mutation_rate):
     mutation_rate = initial_mutation_rate
     for generation in range(num_generations):
         print(f'Generation {generation + 1}')
+
+        # Evaluates each neural network by running it, and then sorting it based off its' score
         fitness_scores = [evaluate_fitness(nn) for nn in population]
         max_fitness = max(fitness_scores)
         min_fitness = min(fitness_scores)
@@ -305,7 +279,7 @@ def genetic_algorithm(population, num_generations, initial_mutation_rate):
         sorted_population = [x for _, x in sorted(zip(scaled_fitness, population), key=lambda item: item[0], reverse=True)]
         new_population = sorted_population[:5]  # Keep the top 5 neural networks intact
 
-        # Dynamic crossover logic
+        # Generates the new population using the genetic algorithm
         top_count = 5
         while len(new_population) < population_size:
             for i in range(top_count, min(population_size, top_count + 5)):
@@ -342,13 +316,15 @@ def visualize_snake(nn, generation, nn_index, max_steps=500):
     fruit_spawn = True
     direction = 'RIGHT'
     steps = 0
+    fruits_eaten = 0
 
     while steps<max_steps:
         game_window.fill(black)
 
 
         font = pygame.font.SysFont('arial', 24)
-        generation_text = font.render(f'Generation: {generation}, NN: {nn_index}', True, white)
+        generation_text = font.render(f'Generation: {generation}, NN: {nn_index} , Fruits Eaten: {fruits_eaten}' ,
+                                      True, white)
         game_window.blit(generation_text, [10, 10])
 
         game_state = get_game_state(snake_position, fruit_position, snake_body, direction)
@@ -389,6 +365,7 @@ def visualize_snake(nn, generation, nn_index, max_steps=500):
         # Check if the snake has eaten the fruit
         if snake_position[0] == fruit_position[0] and snake_position[1] == fruit_position[1]:
             fruit_spawn = False
+            fruits_eaten+=1
         else:
             snake_body.pop()
 
