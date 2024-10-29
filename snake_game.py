@@ -28,31 +28,130 @@ class Cell():
     def get_orientation(self):
         return self.orientation
 
-def cell_score(cell, fruit_cell, window_x, window_y):
-    # calculate the straight distance between a cell and the fruit
+# maybe dividing this into several functions are good idea
+def cell_score(cell, fruit_cell, window_x, window_y, game_window, snake_position):
+    # base score: calculate the straight distance between a cell and the fruit
     distance = math.sqrt((fruit_cell[0] - cell[0])**2 + (fruit_cell[1] - cell[1])**2)
+    # the more dangerous, the more scores
+    danger_score = 0
+
+    # if the distance is 0, that means that it has got to the fruit
     if distance == 0:
         return 1
 
+    # ------------------ short-term danger --------------------
+    # --- examine the proximity to the walls ---
+    # check the x axis
+    if (abs(cell[0] - 0) <= 20 | abs(cell[0] - window_x) <= 20):
+        danger_score += 3
+    elif(abs(cell[0] - 0) <= 40 | abs(cell[0] - window_x) <= 40):
+        danger_score += 2
+    elif(abs(cell[0] - 0) <= 60 | abs(cell[0] - window_x) <= 60):
+        danger_score += 1
+    else:
+        danger_score += 0
+
+    # check the y-axis
+    if (abs(cell[1] - 0) <= 20 | abs(cell[1] - window_y) <= 20):
+        danger_score += 3
+    elif(abs(cell[1] - 0) <= 40 | abs(cell[1] - window_y) <= 40):
+        danger_score += 2
+    elif(abs(cell[1] - 0) <= 60 | abs(cell[1] - window_y) <= 60):
+        danger_score += 1
+    else:
+        danger_score += 0
+
+    # --- examine the proximity to the snake's own body ---
+    # check for the upper space            
+    for i in range(6):
+        # make sure that the checked cell is not the head of the snake, 
+        #   which should not be included to be checked
+        if (cell[1] - 10) == snake_position[1] and cell[0] == snake_position[0]:
+            break
+
+        # make sure that the checked cell is in the range of the game window
+        if 0 <= cell[0] < window_x and 0 <= (cell[1] - (i + 1) * 10) < window_y:
+            # add up the danger score according to the proximity to the snake body
+            if game_window.get_at((cell[0], cell[1] - (i + 1) * 10)) == (0, 255, 0):
+                if (i < 2):
+                    danger_score += 3
+                elif (i < 4):
+                    danger_score += 2
+                else:
+                    danger_score += 1
+                break
+            
+    # check for the right space
+    for i in range(6):
+        # make sure that the checked cell is not the head of the snake, 
+        #   which should not be included to be checked
+        if cell[1] == snake_position[1] and (cell[0] + 10) == snake_position[0]:
+            break
+        
+        # make sure that the checked cell is in the range of the game window
+        if 0 <= (cell[0] + (i + 1) * 10) < window_x and 0 <= cell[1] < window_y:
+            # add up the danger score according to the proximity to the snake body
+            if game_window.get_at((cell[0] + (i + 1) * 10, cell[1])) == (0, 255, 0):
+                if (i < 2):
+                    danger_score += 3
+                elif (i < 4):
+                    danger_score += 2
+                else:
+                    danger_score += 1
+                break
+
+    # check for the down space
+    for i in range(6):
+        # make sure that the checked cell is not the head of the snake, 
+        #   which should not be included to be checked
+        if (cell[1] + 10) == snake_position[1] and cell[0] == snake_position[0]:
+            break
+        
+        # make sure that the checked cell is in the range of the game window
+        if 0 <= cell[0] < window_x and 0 <= (cell[1] + (i + 1) * 10) < window_y:
+            # add up the danger score according to the proximity to the snake body
+            if game_window.get_at((cell[0], cell[1] + (i + 1) * 10)) == (0, 255, 0):
+                if (i < 2):
+                    danger_score += 3
+                elif (i < 4):
+                    danger_score += 2
+                else:
+                    danger_score += 1
+                break
+
+    # check for the left space
+    for i in range(6):
+        # make sure that the checked cell is not the head of the snake, 
+        #   which should not be included to be checked
+        if cell[1] == snake_position[1] and (cell[0] - 10) == snake_position[0]:
+            break
+        
+        # make sure that the checked cell is in the range of the game window
+        if 0 <= (cell[0] - (i + 1) * 10) < window_x and 0 <= cell[1] < window_y:   
+            # add up the danger score according to the proximity to the snake body
+            if game_window.get_at((cell[0] - (i + 1) * 10, cell[1])) == (0, 255, 0):
+                if (i < 2):
+                    danger_score += 3
+                elif (i < 4):
+                    danger_score += 2
+                else:
+                    danger_score += 1
+                break
+
+    # at the end, combine the score 
+    #   and maybe use weight for the final danger score
+                
+    # ------------------ long-term danger --------------------
     
-    # when really close to the wall (i.g. within 3 units of the wall, we can significantly decrease the wall_safety_score )
+    score = 1 / (distance * 0.8 + danger_score * 10 * 0.2)
 
-    # calculate how likely the snake hits itself
-    """
+    return score
 
-    """
-
-    # calculate the score 
-    #score = distance
-
-    #return score
-    return 1 / distance
-
-def get_best_cell(cell_up, cell_right, cell_down, cell_left, fruit_position, window_x, window_y):
-    cell_up.set_score(cell_score(cell_up.get_position(), fruit_position, window_x, window_y))
-    cell_right.set_score(cell_score(cell_right.get_position(), fruit_position, window_x, window_y))
-    cell_down.set_score(cell_score(cell_down.get_position(), fruit_position, window_x, window_y))
-    cell_left.set_score(cell_score(cell_left.get_position(), fruit_position, window_x, window_y))
+def get_best_cell(cell_up, cell_right, cell_down, cell_left, fruit_position, window_x, window_y, game_window, snake_position):
+    cell_up.set_score(cell_score(cell_up.get_position(), fruit_position, window_x, window_y, game_window, snake_position))
+    cell_right.set_score(cell_score(cell_right.get_position(), fruit_position, window_x, window_y, game_window, snake_position))
+    cell_down.set_score(cell_score(cell_down.get_position(), fruit_position, window_x, window_y, game_window, snake_position))
+    cell_left.set_score(cell_score(cell_left.get_position(), fruit_position, window_x, window_y, game_window, snake_position))
 
     best_cell = max([cell_up, cell_right, cell_down, cell_left], key=lambda cell:cell.score)
 
@@ -138,6 +237,7 @@ def game():
                 [80, 50],
                 [70, 50]
                 ]
+    
     # fruit position
     fruit_position = [random.randrange(1, (window_x//10)) * 10, 
                     random.randrange(1, (window_y//10)) * 10]
@@ -163,9 +263,10 @@ def game():
         cell_down = Cell((snake_position[0], snake_position[1] + 10), 'DOWN')
         cell_left = Cell((snake_position[0] - 10, snake_position[1]), 'LEFT')
 
-        best_cell = get_best_cell(cell_up, cell_right, cell_down, cell_left, fruit_position, window_x, window_y)
+        best_cell = get_best_cell(cell_up, cell_right, cell_down, cell_left, fruit_position, window_x, window_y, game_window, snake_position)
 
         change_to = best_cell.get_orientation()
+        print(f"check if this works correctly: {best_cell.get_orientation()}")
         
         # If two keys pressed simultaneously
         # we don't want snake to move into two 
@@ -189,7 +290,7 @@ def game():
         if direction == 'RIGHT':
             snake_position[0] += 10
 
-        print(direction)
+        # print(direction)
 
         # Snake body growing mechanism
         # if fruits and snakes collide then scores
