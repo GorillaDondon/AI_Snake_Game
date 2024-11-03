@@ -37,7 +37,7 @@ def random_initialization(layer_size, prev_layer_size):
 # used for each snake AI generation
 # will need modification for inputs and layers as we progress
 class NeuralNetwork:
-    def __init__(self, input_size=14, hidden_layers=[16, 32, 64, 128, 256], output_size=4):
+    def __init__(self, input_size=20, hidden_layers=[16, 32, 64, 128, 256], output_size=4):
         # Neural Network Structure
         # Input size represents # of inputs given to the neural network using the get_game_state function
         # Hidden layer values represent the number of neurons in a hidden layer, optimizable
@@ -135,11 +135,31 @@ def get_game_state(snake_position, fruit_position, snake_body, direction):
     danger_up = 1 if (snake_position[0], snake_position[1] - 10) in snake_body or snake_position[1] - 10 < 0 else 0
     danger_down = 1 if (snake_position[0], snake_position[1] + 10) in snake_body or snake_position[1] + 10 >= window_y else 0
 
+    # Tail position relative to the snake's head
+    if len(snake_body) > 1:
+        tail_position = snake_body[-1]
+    else:
+        tail_position = snake_position
+    relative_tail_x = (tail_position[0] - snake_position[0]) / window_x
+    relative_tail_y = (tail_position[1] - snake_position[1]) / window_y
+
+    # Tail direction
+    if len(snake_body) > 1:
+        tail_direction = (snake_body[-2][0] - tail_position[0], snake_body[-2][1] - tail_position[1])
+        tail_up = 1 if tail_direction == (0, -10) else 0
+        tail_down = 1 if tail_direction == (0, 10) else 0
+        tail_left = 1 if tail_direction == (-10, 0) else 0
+        tail_right = 1 if tail_direction == (10, 0) else 0
+    else:
+        tail_up = tail_down = tail_left = tail_right = 0
+
     return [
         relative_fruit_x, relative_fruit_y,
         danger_left, danger_right, danger_up, danger_down,
         direction_up, direction_down, direction_left, direction_right,
-        fruit_direction_up, fruit_direction_down, fruit_direction_left, fruit_direction_right
+        fruit_direction_up, fruit_direction_down, fruit_direction_left, fruit_direction_right,
+        relative_tail_x, relative_tail_y,
+        tail_up, tail_down, tail_left, tail_right
     ]
 
 
