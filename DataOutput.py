@@ -324,13 +324,18 @@ def genetic_algorithm(population, num_generations, initial_mutation_rate):
         # Visualization of the top neural networks in the current generation
         for index, nn in enumerate(sorted_population[:visualize_count]):
             visualize_snake(nn, generation + 1, index + 1)
+            pygame.display.quit()
 
     return population
 
 
 
 # Visualization function
-def visualize_snake(nn, generation, nn_index, max_steps=50000):
+def visualize_snake(nn, generation, nn_index, max_steps=5000):
+    pygame.init()
+    game_window = pygame.display.set_mode((window_x, window_y))
+    pygame.display.set_caption(f'Snake AI Generation {generation}, NN {nn_index}')
+
     snake_position = [100, 50]
     snake_body = [[100, 50], [90, 50], [80, 50], [70, 50]]
     fruit_position = [random.randrange(1, (window_x // 10)) * 10, random.randrange(1, (window_y // 10)) * 10]
@@ -415,9 +420,13 @@ def visualize_snake(nn, generation, nn_index, max_steps=50000):
 
         steps += 1  # Increment step counter
 
-    time.sleep(0.01)  # Pause before the next NN is visualized
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                return
 
-
+        # Quit Pygame after visualization to free up memory
+    pygame.display.quit()
 
 def main():
     population = initialize_population(population_size)
