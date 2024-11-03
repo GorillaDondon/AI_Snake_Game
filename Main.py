@@ -3,6 +3,7 @@ import pygame
 import time
 import random
 import numpy as np
+import os
 
 # Snake game settings
 snake_speed = 500  # Speed of the snake
@@ -10,7 +11,7 @@ window_x = 720
 window_y = 480
 population_size = 50  # Number of neural networks in each generation
 initial_mutation_rate = 0.1  # Initial probability of mutation
-num_generations = 200  # Number of generations
+num_generations = 50  # Number of generations
 visualize_count = 3  # Number of neural networks to visualize from each generation
 
 
@@ -323,13 +324,18 @@ def genetic_algorithm(population, num_generations, initial_mutation_rate):
         # Visualization of the top neural networks in the current generation
         for index, nn in enumerate(sorted_population[:visualize_count]):
             visualize_snake(nn, generation + 1, index + 1)
+            pygame.display.quit()
 
     return population
 
 
 
 # Visualization function
-def visualize_snake(nn, generation, nn_index, max_steps=500):
+def visualize_snake(nn, generation, nn_index, max_steps=5000):
+    pygame.init()
+    game_window = pygame.display.set_mode((window_x, window_y))
+    pygame.display.set_caption(f'Snake AI Generation {generation}, NN {nn_index}')
+
     snake_position = [100, 50]
     snake_body = [[100, 50], [90, 50], [80, 50], [70, 50]]
     fruit_position = [random.randrange(1, (window_x // 10)) * 10, random.randrange(1, (window_y // 10)) * 10]
@@ -403,6 +409,10 @@ def visualize_snake(nn, generation, nn_index, max_steps=500):
         if (snake_position[0] < 0 or snake_position[0] >= window_x or
                 snake_position[1] < 0 or snake_position[1] >= window_y or
                 snake_body[1:].count(snake_position) > 0):
+            #if (generation+1) % 10==0 and nn_index == 1: # every 10 generations and the best ranked neural network
+            # will output to the text file
+                #with open("edittingtextfile.txt", "a") as file:
+                   # file.write("Generation "+ str(generation+1)+ ", Fruits Eaten: "+str(fruits_eaten) + "\n")
             break
 
         pygame.display.update()
@@ -410,9 +420,13 @@ def visualize_snake(nn, generation, nn_index, max_steps=500):
 
         steps += 1  # Increment step counter
 
-    time.sleep(0.01)  # Pause before the next NN is visualized
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                return
 
-
+        # Quit Pygame after visualization to free up memory
+    pygame.display.quit()
 
 def main():
     population = initialize_population(population_size)
