@@ -38,7 +38,7 @@ def random_initialization(layer_size, prev_layer_size):
 # used for each snake AI generation
 # will need modification for inputs and layers as we progress
 class NeuralNetwork:
-    def __init__(self, input_size=16, hidden_layers=[16, 32, 64, 128, 256], output_size=4):
+    def __init__(self, input_size=14, hidden_layers=[16, 32, 64, 128, 256], output_size=4):
         # Neural Network Structure
         # Input size represents # of inputs given to the neural network using the get_game_state function
         # Hidden layer values represent the number of neurons in a hidden layer, optimizable
@@ -142,7 +142,6 @@ def get_game_state(snake_position, fruit_position, snake_body, direction):
         direction_up, direction_down, direction_left, direction_right,
         fruit_direction_up, fruit_direction_down, fruit_direction_left, fruit_direction_right
     ]
-
 
 
 
