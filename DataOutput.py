@@ -114,7 +114,7 @@ class NeuralNetwork:
 # Modifying as needed
 
 def get_game_state(snake_position, fruit_position, snake_body, direction):
-    #Relative position of the fruit to the snake
+    # Relative position of the fruit to the snake
     relative_fruit_x = (fruit_position[0] - snake_position[0]) / window_x
     relative_fruit_y = (fruit_position[1] - snake_position[1]) / window_y
 
@@ -152,7 +152,6 @@ def initialize_population(population_size):
 
 # Fitness function to determine worth of a neural network
 # Utilizes steps and distance from fruit to update score
-
 def evaluate_fitness(nn, max_steps=10000, no_progress_steps=1000):
     snake_position = [100, 50]
     snake_body = [[100, 50], [90, 50], [80, 50], [70, 50]]
@@ -306,8 +305,6 @@ def genetic_algorithm(population, num_generations, initial_mutation_rate):
             pygame.display.quit()
 
     return population
-
-
 
 # Visualization function
 def visualize_snake(nn, generation, nn_index, max_steps=5000):
