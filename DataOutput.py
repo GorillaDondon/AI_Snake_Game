@@ -21,7 +21,6 @@ red = pygame.Color(255, 0, 0)
 green = pygame.Color(0, 255, 0)
 blue = pygame.Color(0, 0, 255)
 
-
 pygame.init()
 
 # Initialise game window
@@ -322,7 +321,6 @@ def visualize_snake(nn, generation, nn_index, max_steps=5000):
 
     while steps<max_steps:
         game_window.fill(black)
-
 
         font = pygame.font.SysFont('arial', 24)
         generation_text = font.render(f'Generation: {generation}, NN: {nn_index} , Fruits Eaten: {fruits_eaten}' ,
