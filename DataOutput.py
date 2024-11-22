@@ -6,10 +6,10 @@ import numpy as np
 import os
 
 # Snake game settings
-snake_speed = 500  # Speed of the snake
+snake_speed = 1000  # Speed of the snake
 window_x = 720
 window_y = 480
-population_size = 50  # Number of neural networks in each generation
+population_size = 200  # Number of neural networks in each generation
 initial_mutation_rate = 0.1  # Initial probability of mutation
 num_generations = 50  # Number of generations
 visualize_count = 3  # Number of neural networks to visualize from each generation
@@ -38,7 +38,7 @@ def random_initialization(layer_size, prev_layer_size):
 # used for each snake AI generation
 # will need modification for inputs and layers as we progress
 class NeuralNetwork:
-    def __init__(self, input_size=20, hidden_layers=[16, 32, 64, 128, 256], output_size=4):
+    def __init__(self, input_size=20, hidden_layers=[16, 32, 64, 32], output_size=4):
         # Neural Network Structure
         # Input size represents # of inputs given to the neural network using the get_game_state function
         # Hidden layer values represent the number of neurons in a hidden layer, optimizable
@@ -174,7 +174,7 @@ def initialize_population(population_size):
 # Fitness function to determine worth of a neural network
 # Utilizes steps and distance from fruit to update score
 
-def evaluate_fitness(nn, max_steps=10000, no_progress_steps=1000):
+def evaluate_fitness(nn, max_steps=50000, no_progress_steps=1000):
     snake_position = [100, 50]
     snake_body = [[100, 50], [90, 50], [80, 50], [70, 50]]
     fruit_position = [random.randrange(1, (window_x // 10)) * 10, random.randrange(1, (window_y // 10)) * 10]
@@ -225,7 +225,7 @@ def evaluate_fitness(nn, max_steps=10000, no_progress_steps=1000):
 
         # + 10 to the snakes score if it eats a frit
         if snake_position[0] == fruit_position[0] and snake_position[1] == fruit_position[1]:
-            score += 10  # High reward for eating fruit
+            score += 100  # High reward for eating fruit
             fruit_spawn = False
             progress = True
         else:
@@ -324,7 +324,7 @@ def genetic_algorithm(population, num_generations, initial_mutation_rate):
         # Visualization of the top neural networks in the current generation
         for index, nn in enumerate(sorted_population[:visualize_count]):
             visualize_snake(nn, generation + 1, index + 1)
-            pygame.display.quit()
+            #pygame.display.quit()
 
     return population
 
@@ -411,7 +411,7 @@ def visualize_snake(nn, generation, nn_index, max_steps=5000):
                 snake_body[1:].count(snake_position) > 0):
             if (generation+1) % 10==0 and nn_index == 1: # every 10 generations and the best ranked neural network
             # will output to the text file
-                with open("edittingtextfile.txt", "a") as file:
+                with open("experiment2.txt", "a") as file:
                     file.write("Generation "+ str(generation+1)+ ", Fruits Eaten: "+str(fruits_eaten) + "\n")
             break
 
@@ -420,13 +420,13 @@ def visualize_snake(nn, generation, nn_index, max_steps=5000):
 
         steps += 1  # Increment step counter
 
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-                return
+       # for event in pygame.event.get():
+          #  if event.type == pygame.QUIT:
+          #      pygame.quit()
+            #    return
 
         # Quit Pygame after visualization to free up memory
-    pygame.display.quit()
+  #  pygame.display.quit()
 
 def main():
     population = initialize_population(population_size)
