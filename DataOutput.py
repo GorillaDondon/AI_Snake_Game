@@ -6,7 +6,7 @@ import numpy as np
 import os
 
 # Snake game settings
-snake_speed = 1000  # Speed of the snake
+snake_speed = 100  # Speed of the snake
 window_x = 500
 window_y = 500
 population_size = 200  # Number of neural networks in each generation
@@ -182,7 +182,7 @@ def initialize_population(populationSize):
 # Fitness function to determine worth of a neural network
 # Utilizes steps and distance from fruit to update score
 
-def evaluate_fitness(nn, index, max_steps=5000, no_progress_steps=1000):
+def evaluate_fitness(nn, index, max_steps=1000, no_progress_steps=1000):
     snake_position = [100, 50]
     snake_body = [[100, 50], [90, 50], [80, 50], [70, 50]]
     fruit_position = [random.randrange(1, (window_x // 10)) * 10, random.randrange(1, (window_y // 10)) * 10]
@@ -195,10 +195,12 @@ def evaluate_fitness(nn, index, max_steps=5000, no_progress_steps=1000):
     progress = False
     direction_change_count = 0
 
+
     move_history = []
 
     # Game loop, if it hits max steps, end the run
     while steps < max_steps:
+        loop_count = 0
         # Gets the game state from the get function
         game_state = get_game_state(snake_position, fruit_position, snake_body, direction)
         # Gives the move that the neural network has decided to do based off game state and weights/biases
@@ -279,15 +281,20 @@ def evaluate_fitness(nn, index, max_steps=5000, no_progress_steps=1000):
         move_history.append(tuple(snake_position))
         if len(move_history) > no_progress_steps:
             move_history.pop(0)
-            if len(set(move_history)) < no_progress_steps // 2:  # Check for loops
-                score -= 10  # Penalty for looping
-                break
 
-        if steps % no_progress_steps == 0:
-            if not progress:
-                score -= 10  # Increased penalty for no progress
+        if steps > 50:
+            pattern = move_history[:5]
+            first_tuple = pattern[0]
+            history = move_history[5:]
+            for i, tuples in enumerate(history):
+                if tuples == first_tuple:
+                    look = history[i:i + 5]
+                    if look == pattern:
+                        loop_count += 1
+            if loop_count > 5:
+                print("loop", nn)
+                score -= 100
                 break
-            progress = False
 
       #  if direction_change_count < 3 and steps % 50 == 0:  # Penalize for lack of direction change
           #  score -= 200
@@ -372,7 +379,7 @@ def genetic_algorithm(population, num_generations, initial_mutation_rate):
 
 
 # Visualization function
-def visualize_snake(nn, generation, nn_index, max_steps=5000):
+def visualize_snake(nn, generation, nn_index, max_steps=500):
     pygame.init()
     game_window = pygame.display.set_mode((window_x, window_y))
     pygame.display.set_caption(f'Snake AI Generation {generation}, NN {nn_index}')
