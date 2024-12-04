@@ -153,7 +153,7 @@ def initialize_population(population_size):
 # Fitness function to determine worth of a neural network
 # Utilizes steps and distance from fruit to update score
 
-def evaluate_fitness(nn, max_steps=10000, no_progress_steps=1000):
+def evaluate_fitness(nn, max_steps=10000, no_progress_steps=200):
     snake_position = [100, 50]
     snake_body = [[100, 50], [90, 50], [80, 50], [70, 50]]
     fruit_position = [random.randrange(1, (window_x // 10)) * 10, random.randrange(1, (window_y // 10)) * 10]
@@ -164,6 +164,7 @@ def evaluate_fitness(nn, max_steps=10000, no_progress_steps=1000):
     last_distance = np.inf
     progress = False
     direction_change_count = 0
+    loop_count = 0
 
     move_history = []
 
@@ -202,9 +203,9 @@ def evaluate_fitness(nn, max_steps=10000, no_progress_steps=1000):
 
         snake_body.insert(0, list(snake_position))
 
-        # + 10 to the snakes score if it eats a frit
+        # + 25 to the snakes score if it eats a frit
         if snake_position[0] == fruit_position[0] and snake_position[1] == fruit_position[1]:
-            score += 10  # High reward for eating fruit
+            score += 25  # High reward for eating fruit
             fruit_spawn = False
             progress = True
         else:
@@ -219,12 +220,12 @@ def evaluate_fitness(nn, max_steps=10000, no_progress_steps=1000):
         # Ends the run if the snake hits its body or wall, lowers the score
         if (snake_position[0] < 0 or snake_position[0] >= window_x or
                 snake_position[1] < 0 or snake_position[1] >= window_y):
-            score -= 10
+            score -= 50
             break
 
         for block in snake_body[1:]:
             if snake_position[0] == block[0] and snake_position[1] == block[1]:
-                score -= 10
+                score -= 50
                 break
 
         # If the snake is getting closer to the food, it increases the score
@@ -234,10 +235,9 @@ def evaluate_fitness(nn, max_steps=10000, no_progress_steps=1000):
         distance_to_food = np.sqrt((snake_position[0] - fruit_position[0]) ** 2 +
                                    (snake_position[1] - fruit_position[1]) ** 2)
         if distance_to_food < last_distance:
-            score += 1  # Increased reward for getting closer to food
-            progress = True
+            score += 2  # Increased reward for getting closer to food
         else:
-            score -= 1  # Penalty for moving away from food
+            score -= 2  # Penalty for moving away from food
 
         last_distance = distance_to_food
         steps += 1
@@ -246,15 +246,28 @@ def evaluate_fitness(nn, max_steps=10000, no_progress_steps=1000):
         move_history.append(tuple(snake_position))
         if len(move_history) > no_progress_steps:
             move_history.pop(0)
-            if len(set(move_history)) < no_progress_steps // 2:  # Check for loops
-                score -= 10  # Penalty for looping
+
+        if steps > 50:
+            pattern = move_history[:5]
+            first_tuple = pattern[0]
+            history = move_history[5:]
+            for i,tuples in enumerate(history):
+                if tuples == first_tuple:
+                    look = history[i:i+5]
+                    if look == pattern:
+                        loop_count += 1
+            if loop_count > 5:
+                print("loop", nn)
+                score -= 100
                 break
 
         if steps % no_progress_steps == 0:
             if not progress:
-                score -= 10  # Increased penalty for no progress
+                score -= 50  # Increased penalty for no progress
                 break
             progress = False
+
+        
 
       #  if direction_change_count < 3 and steps % 50 == 0:  # Penalize for lack of direction change
           #  score -= 200
