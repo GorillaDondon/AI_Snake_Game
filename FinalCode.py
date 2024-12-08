@@ -101,24 +101,56 @@ class NeuralNetwork:
         )
 
         for i in range(len(self.weights)):
+            # Weight generation
+            child_weights = np.zeros(self.weights[i].shape)
             random_weights = np.random.rand(*self.weights[i].shape)
-            child.weights[i] = np.where(random_weights > 0.5, self.weights[i], other.weights[i])
+            for row in range(self.weights[i].shape[0]):
+                for col in range(self.weights[i].shape[1]):
+                    if random_weights[row, col] > 0.5:
+                        child_weights[row, col] = self.weights[i][row, col]
+                    else:
+                        child_weights[row, col] = other.weights[i][row, col]
+            child.weights[i] = child_weights
 
+            # Bias generation
+            child_biases = np.zeros(self.biases[i].shape)
             random_biases = np.random.rand(*self.biases[i].shape)
-            child.biases[i] = np.where(random_biases > 0.5, self.biases[i], other.biases[i])
+            for j in range(self.biases[i].shape[0]):
+                if random_biases[j] > 0.5:
+                    child_biases[j] = self.biases[i][j]
+                else:
+                    child_biases[j] = other.biases[i][j]
+            child.biases[i] = child_biases
         return child
 
     # Mutates the neural network biases/weights under a certain condition
     def mutate(self, mutation_rate):
         for i in range(len(self.weights)):
             random_weights = np.random.rand(*self.weights[i].shape)
-            mutation_weight_flag = random_weights < mutation_rate
+            mutation_weight_flag = np.zeros(self.weights[i].shape)
+            for row in range(self.weights[i].shape[0]):
+                for col in range(self.weights[i].shape[1]):
+                    if random_weights[row, col] < mutation_rate:
+                        mutation_weight_flag[row, col] = 1
+                    else:
+                        mutation_weight_flag[row, col] = 0
 
             random_biases = np.random.rand(*self.biases[i].shape)
-            mutation_bias_flag =  random_biases < mutation_rate
+            mutation_bias_flag = np.zeros(self.biases[i].shape)
+            for j in range(self.biases[i].shape[0]):
+                if random_biases[j] < mutation_rate:
+                    mutation_bias_flag[j] = 1
+                else:
+                    mutation_bias_flag[j] = 0
 
-            self.weights[i] += mutation_weight_flag * np.random.randn(*self.weights[i].shape)
-            self.biases[i] += mutation_bias_flag * np.random.randn(*self.biases[i].shape)
+            weight_mutations = np.random.randn(*self.weights[i].shape)
+            mutated_weights = mutation_weight_flag * weight_mutations
+
+            bias_mutations = np.random.rand(*self.biases[i].shape)
+            mutated_biases = mutation_bias_flag * bias_mutations
+
+            self.weights[i] += mutated_weights
+            self.biases[i] += mutated_biases
 
 # Gives the relevant game state information to the neural network
 # Which then allows it to make predictions
@@ -415,27 +447,27 @@ def genetic_algorithm(population, num_generations, initial_mutation_rate):
         while len(new_population) < population_size:
             for i in range(top_count, min(population_size, top_count + 5)):
                 parent1 = sorted_population[random.randint(0, top_count - 1)]
-               #parent2 = sorted_population[random.randint(0, i - 1)]#
                 parent2 = sorted_population[random.randint(0, second_count - 1)]
                 child = parent1.crossover(parent2)
                 child.mutate(mutation_rate)
                 new_population.append(child)
                 if len(new_population) >= population_size:
                     break
-            #top_count += 5
 
         population = new_population
 
         # Adjust mutation rate dynamically based on performance
         if max(scaled_fitness) < 0.5:
-            mutation_rate = min(1.0, mutation_rate + 0.05)  # Increase mutation rate if performance is low
+            if mutation_rate <= 0.5:
+                mutation_rate += 0.05
         else:
-            mutation_rate = max(0.01, mutation_rate - 0.01)  # Decrease mutation rate if performance is good
+            if mutation_rate > 0.01:
+                mutation_rate -= 0.01
 
         # Visualization of the top neural networks in the current generation
         for index, nn in enumerate(sorted_population[:visualize_count]):
             visualize_snake(nn, generation + 1, index + 1)
-            #pygame.display.quit()
+
 
     return population
 
