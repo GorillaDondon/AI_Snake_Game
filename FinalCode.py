@@ -1,12 +1,3 @@
-# Final Project
-# CSCE 480 - Intro to AI
-# Dylan Andersen, Jo Ishizaki, and Usman Kaleel
-# Professor Kim
-
-# The goal of this program was to breed a neural network that had the ability to clear the game of Snake
-
-
-
 # importing libraries
 import pygame
 import time
@@ -264,6 +255,8 @@ def get_game_state(snake_position, fruit_position, snake_body, direction):
 
 
 
+
+
 def initialize_population(populationSize):
     listOfNeuralNetworks = []
     for i in range(population_size):
@@ -389,7 +382,8 @@ def evaluate_fitness(nn, index, max_steps=10000, no_progress_steps=1000):
                 score -= 1000
                 break
 
-    #logs every 20
+      #  if direction_change_count < 3 and steps % 50 == 0:  # Penalize for lack of direction change
+          #  score -= 200
     if index%20 == 0:
         with open("edittingtextfile.txt", "a") as file:
             file.write("\nNeural Network Index: "+ str(index) + ", Fruits Eaten: " + str(fruits_eaten) + "\n")
@@ -399,7 +393,8 @@ def evaluate_fitness(nn, index, max_steps=10000, no_progress_steps=1000):
     return [score + steps/max_steps, fruits_eaten]
 
 
-# Genetic Algorithm
+# Genetic Algorithm, will heavily modify
+
 def genetic_algorithm(population, num_generations, initial_mutation_rate):
     mutation_rate = initial_mutation_rate
     for generation in range(num_generations):
@@ -415,7 +410,6 @@ def genetic_algorithm(population, num_generations, initial_mutation_rate):
             fitness_scores.append(fitness[0])
             fruits_eaten.append(fitness[1])
 
-        # Updates the bar graph utilizing new averages
         avg_fruits_eaten = np.mean(fruits_eaten)
         average_fruits_per_generation.append(avg_fruits_eaten)
         update_bar_graph(average_fruits_per_generation, generation+1)
@@ -423,7 +417,8 @@ def genetic_algorithm(population, num_generations, initial_mutation_rate):
         max_fitness = max(fitness_scores)
         min_fitness = min(fitness_scores)
 
-        # Scales the fitness scores, adds a tiny number to avoid possible division by 0
+
+        #scaled_fitness = [(score - min_fitness) / (max_fitness - min_fitness + 0.00000001) for score in fitness_scores]
 
         scaled_fitness = []
         for score in fitness_scores:
@@ -439,6 +434,10 @@ def genetic_algorithm(population, num_generations, initial_mutation_rate):
             single_score = score[1]
             sorted_population.append(single_score)
 
+
+        #sorted_population = [x for _, x in sorted(zip(scaled_fitness, population), key=lambda item: item[0],
+             #                                     reverse=True)]
+
         new_population = sorted_population[:5]  # Keep the top 5 neural networks intact
 
         # Generates the new population using the genetic algorithm
@@ -447,27 +446,27 @@ def genetic_algorithm(population, num_generations, initial_mutation_rate):
         while len(new_population) < population_size:
             for i in range(top_count, min(population_size, top_count + 5)):
                 parent1 = sorted_population[random.randint(0, top_count - 1)]
+               #parent2 = sorted_population[random.randint(0, i - 1)]#
                 parent2 = sorted_population[random.randint(0, second_count - 1)]
                 child = parent1.crossover(parent2)
                 child.mutate(mutation_rate)
                 new_population.append(child)
                 if len(new_population) >= population_size:
                     break
+            #top_count += 5
 
         population = new_population
 
         # Adjust mutation rate dynamically based on performance
         if max(scaled_fitness) < 0.5:
-            if mutation_rate <= 0.5:
-                mutation_rate += 0.05
+            mutation_rate = min(1.0, mutation_rate + 0.05)  # Increase mutation rate if performance is low
         else:
-            if mutation_rate > 0.01:
-                mutation_rate -= 0.01
+            mutation_rate = max(0.01, mutation_rate - 0.01)  # Decrease mutation rate if performance is good
 
         # Visualization of the top neural networks in the current generation
         for index, nn in enumerate(sorted_population[:visualize_count]):
             visualize_snake(nn, generation + 1, index + 1)
-
+            #pygame.display.quit()
 
     return population
 
@@ -499,7 +498,7 @@ def visualize_snake(nn, generation, nn_index, max_steps=5000):
         game_state = get_game_state(snake_position, fruit_position, snake_body, direction)
         prediction = nn.predict(game_state)
 
-        # Moves direction based off prediictiion
+
         if prediction == 0:
             direction_change = 'UP'
         elif prediction == 1:
@@ -563,13 +562,9 @@ def visualize_snake(nn, generation, nn_index, max_steps=5000):
         pygame.display.update()
         fps.tick(snake_speed)
 
-        steps += 1
+        steps += 1  # Increment step counter
 
 
-
-
-
-# Graph generation
 def update_bar_graph(average_fruits_per_generation, current_generation):
     plt.figure(figsize=(10, 6))
     plt.bar(range(1, current_generation + 1), average_fruits_per_generation, color='skyblue')
@@ -578,7 +573,7 @@ def update_bar_graph(average_fruits_per_generation, current_generation):
     plt.title('Average Fruits Eaten Per Generation')
     plt.tight_layout()
 
-    # Save the graph to a file, will create it if not already present in file directory
+    # Save the graph to a file
     plt.savefig('average_apples.png')
     plt.close()
 
